@@ -1,0 +1,54 @@
+// app.js
+
+const express = require('express');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const apiRoutes = require('./src/routes/index');
+
+// Load environment variables from .env file
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
+
+// Middleware
+app.use(express.json()); // To parse JSON bodies from requests
+
+// ------------------------------------------------------------------
+// 1. MONGODB CONNECTION (Mongoose)
+// ------------------------------------------------------------------
+mongoose.connect(MONGODB_URI)
+    .then(() => {
+        console.log('✅ Connected to MongoDB successfully.');
+    })
+    .catch(err => {
+        console.error('❌ MongoDB connection error:', err.message);
+        // Optional: Exit process if DB connection fails critical for app functionality
+        // process.exit(1); 
+    });
+
+
+// ------------------------------------------------------------------
+// 2. ROUTES
+// ------------------------------------------------------------------
+
+// Basic root route for verification
+app.get('/', (req, res) => {
+    res.send('<h1>Product CRUD API is Running!</h1><p>Use /api/products for CRUD operations.</p>');
+});
+
+// Mount the product API routes
+app.use('/api', apiRoutes); 
+
+// Fallback for 404
+app.use((req, res) => {
+    res.status(404).send({ message: 'Route not found. Check your URL.' });
+});
+
+// ------------------------------------------------------------------
+// 3. START SERVER
+// ------------------------------------------------------------------
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+});
