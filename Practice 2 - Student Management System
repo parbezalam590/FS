@@ -1,0 +1,38 @@
+// src/app.js
+require('dotenv').config(); // Load environment variables from .env
+const express = require('express');
+const mongoose = require('mongoose');
+const studentRoutes = require('./routes/studentRoutes'); // Import student routes
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI;
+
+// Middleware
+app.use(express.json()); // Allows the server to accept JSON body data
+
+// 1. Database Connection
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('✅ MongoDB connected successfully.'))
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1); // Exit process with failure
+  });
+
+
+// 2. Default/Root Route (Serve your index.html)
+app.get('/', (req, res) => {
+  // Assuming your index.html is simple and can be sent directly
+  res.sendFile('index.html', { root: __dirname + '/../' });
+});
+
+// 3. API Routes Integration (Connect /api/students to the controller)
+// The API base path for our management system will be /api/students
+app.use('/api/students', studentRoutes);
+
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`API Endpoints: http://localhost:${PORT}/api/students`);
+});
