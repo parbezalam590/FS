@@ -1,0 +1,91 @@
+// app.js
+
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const bodyParser = require('body-parser');
+const app = express();
+const PORT = 3000;
+const SECRET_KEY = 'mysecretkey';
+
+app.use(bodyParser.json());
+
+// Dummy user data
+const user = {
+  username: 'user1',
+  password: 'password123',
+};
+
+// Sample account balance
+let balance = 1000;
+
+// --------------------------
+// POST /login
+// --------------------------
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  if (username === user.username && password === user.password) {
+    const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: '1h' });
+    res.json({ token });
+  } else {
+    res.status(401).json({ message: 'Invalid credentials' });
+  }
+});
+
+// --------------------------
+// Middleware: Verify Token
+// --------------------------
+function verifyToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader)
+    return res.status(403).json({ message: 'Invalid or expired token' });
+
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err)
+      return res.status(403).json({ message: 'Invalid or expired token' });
+    req.user = decoded;
+    next();
+  });
+}
+
+// --------------------------
+// GET /balance
+// --------------------------
+app.get('/balance', verifyToken, (req, res) => {
+  res.json({ balance });
+});
+
+// --------------------------
+// POST /deposit
+// --------------------------
+app.post('/deposit', verifyToken, (req, res) => {
+  const { amount } = req.body;
+  balance += amount;
+  res.json({
+    message: `Deposited $${amount}`,
+    newBalance: balance,
+  });
+});
+
+// --------------------------
+// POST /withdraw
+// --------------------------
+app.post('/withdraw', verifyToken, (req, res) => {
+  const { amount } = req.body;
+  if (amount > balance) {
+    return res.status(400).json({ message: 'Insufficient balance' });
+  }
+  balance -= amount;
+  res.json({
+    message: `Withdraw $${amount}`,
+    newBalance: balance,
+  });
+});
+
+// --------------------------
+// Start server
+// --------------------------
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
