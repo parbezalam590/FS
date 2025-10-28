@@ -1,0 +1,69 @@
+// app.js
+
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const bodyParser = require('body-parser');
+
+const app = express();
+const PORT = 3000;
+const SECRET_KEY = 'mysecretkey';
+
+app.use(bodyParser.json());
+
+// Dummy user
+const user = {
+  id: 1,
+  username: 'testuser',
+  password: 'password123',
+};
+
+// ------------------------
+// POST /login → Generate JWT
+// ------------------------
+app.post('/login', (req, res) => {
+  const { id, username, password } = req.body;
+
+  // Validate credentials
+  if (id === user.id && username === user.username && password === user.password) {
+    const token = jwt.sign({ id, username }, SECRET_KEY, { expiresIn: '1h' });
+    res.json({ token });
+  } else {
+    res.status(401).json({ message: 'Invalid credentials' });
+  }
+});
+
+// ------------------------
+// Middleware → Verify JWT
+// ------------------------
+function verifyToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    return res.status(401).json({ message: 'Token missing' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    req.user = decoded;
+    next();
+  });
+}
+
+// ------------------------
+// GET /protected → Secure route
+// ------------------------
+app.get('/protected', verifyToken, (req, res) => {
+  res.json({
+    message: 'You have accessed a protected route!',
+    user: req.user,
+  });
+});
+
+// ------------------------
+// Start server
+// ------------------------
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
